@@ -6,7 +6,7 @@ from zipfile import ZipFile
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
-rDownloadURL = "https://github.com/sabiralipsl/xtream-black-mods-ubuntu-20/releases/download/xtream/sub_xui_xoceunder.zip"
+rDownloadURL = "https://github.com/sabiralipsl/Xtream-UI-R22F-ubuntu20.04lts-2025/releases/download/xtream1/sub_xui_xoceunder.zip"
 rPackages = ["libcurl4", "libxslt1-dev", "libgeoip-dev", "e2fsprogs", "wget", "mcrypt", "nscd", "htop", "zip", "unzip", "mc", "libzip5"]
 
 def getVersion():
