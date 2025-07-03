@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Xtream UI R22F Hybrid Installer
-Dragon Shield Edition
 Ubuntu 22.04/24.04 + nginx 1.26.2 + PHP 8.3 + MariaDB 10.5
 
 Author: Stefan2512
@@ -36,7 +35,6 @@ DOWNLOAD_URLS = {
 
 # Ubuntu versions support matrix
 UBUNTU_SUPPORT = {
-    "20.10": {"codename": "groovy", "eol": True, "mariadb_repo": "focal"},
     "22.04": {"codename": "jammy", "eol": False, "mariadb_repo": "jammy"},
     "24.04": {"codename": "noble", "eol": False, "mariadb_repo": "jammy"}  # Use jammy for compatibility
 }
@@ -362,17 +360,55 @@ def setup_repositories(sys_info):
     log_step(f"Adding PHP {PHP_VERSION} repository", "INFO")
     run_command("add-apt-repository ppa:ondrej/php -y", retry_count=2)
     
-    # Add MariaDB repository
+    # Add MariaDB repository with multiple fallback methods
     log_step(f"Adding MariaDB {MARIADB_VERSION} repository", "INFO")
     
-    # MariaDB key and repository
-    mariadb_commands = [
-        "apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8",
-        f"add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/{MARIADB_VERSION}/ubuntu {ubuntu_info['mariadb_repo']} main'"
+    # Try multiple keyserver methods for better reliability
+    mariadb_key_added = False
+    key_methods = [
+        # Method 1: Direct download (fastest)
+        "wget -qO- https://mariadb.org/mariadb_release_signing_key.asc | apt-key add -",
+        # Method 2: Alternative keyserver
+        "apt-key adv --recv-keys --keyserver keyserver.ubuntu.com:80 0xF1656F24C74CD1D8",
+        # Method 3: Different keyserver  
+        "apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xF1656F24C74CD1D8",
+        # Method 4: Original keyserver (slowest)
+        "apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8"
     ]
     
-    for cmd in mariadb_commands:
-        run_command(f"{cmd}", allow_failure=True)
+    for i, key_cmd in enumerate(key_methods, 1):
+        log_step(f"Trying MariaDB key method {i}/{len(key_methods)}", "INFO")
+        if run_command(key_cmd, allow_failure=True, timeout=60):  # Shorter timeout
+            mariadb_key_added = True
+            log_step(f"MariaDB key added successfully (method {i})", "SUCCESS")
+            break
+        else:
+            log_step(f"Method {i} failed, trying next...", "WARNING")
+    
+    if not mariadb_key_added:
+        log_step("All MariaDB key methods failed, but continuing", "WARNING")
+    
+    # Try multiple repository mirrors for better performance
+    repo_mirrors = [
+        f"http://mirror.lstn.net/mariadb/repo/{MARIADB_VERSION}/ubuntu",
+        f"http://ftp.osuosl.org/pub/mariadb/repo/{MARIADB_VERSION}/ubuntu", 
+        f"http://mirrors.neusoft.edu.cn/mariadb/repo/{MARIADB_VERSION}/ubuntu",
+        f"http://mirror.mariadb.org/repo/{MARIADB_VERSION}/ubuntu"
+    ]
+    
+    repo_added = False
+    for i, mirror in enumerate(repo_mirrors, 1):
+        log_step(f"Trying MariaDB mirror {i}/{len(repo_mirrors)}", "INFO")
+        repo_cmd = f"add-apt-repository 'deb [arch=amd64,arm64,ppc64el] {mirror} {ubuntu_info['mariadb_repo']} main'"
+        if run_command(repo_cmd, allow_failure=True, timeout=30):  # Shorter timeout
+            repo_added = True
+            log_step(f"MariaDB repository added (mirror {i})", "SUCCESS")
+            break
+        else:
+            log_step(f"Mirror {i} failed, trying next...", "WARNING")
+    
+    if not repo_added:
+        log_step("Using system MariaDB instead of 10.5", "WARNING")
     
     # Final package update
     run_command("apt-get update", "Updating package lists after repository setup")
