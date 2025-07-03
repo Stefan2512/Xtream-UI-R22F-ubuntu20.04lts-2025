@@ -4,7 +4,7 @@
 Xtream UI R22F Complete Static Installer - PRODUCTION READY
 Ubuntu 22.04/24.04 + Static nginx 1.26.2 + Static PHP 8.3 + MariaDB 10.5
 
-Author: Stefan + Claude AI Collaboration
+Author: Stefan2512
 Version: 4.1 - COMPLETELY FIXED AND VERIFIED
 Date: 2025
 
