@@ -361,7 +361,7 @@ def setup_repositories(sys_info):
     log_step(f"Adding PHP {PHP_VERSION} repository", "INFO")
     run_command("add-apt-repository ppa:ondrej/php -y", retry_count=2)
     
-    # Add MariaDB repository with multiple fallback methods
+    # Add MariaDB repository with manual method to avoid apt-update timeouts
     log_step(f"Adding MariaDB {MARIADB_VERSION} repository", "INFO")
     
     # Try multiple keyserver methods for better reliability
@@ -387,29 +387,45 @@ def setup_repositories(sys_info):
             log_step(f"Method {i} failed, trying next...", "WARNING")
     
     if not mariadb_key_added:
-        log_step("All MariaDB key methods failed, but continuing", "WARNING")
-    
-    # Try multiple repository mirrors for better performance
-    repo_mirrors = [
-        f"http://mirror.lstn.net/mariadb/repo/{MARIADB_VERSION}/ubuntu",
-        f"http://ftp.osuosl.org/pub/mariadb/repo/{MARIADB_VERSION}/ubuntu", 
-        f"http://mirrors.neusoft.edu.cn/mariadb/repo/{MARIADB_VERSION}/ubuntu",
-        f"http://mirror.mariadb.org/repo/{MARIADB_VERSION}/ubuntu"
-    ]
-    
-    repo_added = False
-    for i, mirror in enumerate(repo_mirrors, 1):
-        log_step(f"Trying MariaDB mirror {i}/{len(repo_mirrors)}", "INFO")
-        repo_cmd = f"add-apt-repository 'deb [arch=amd64,arm64,ppc64el] {mirror} {ubuntu_info['mariadb_repo']} main'"
-        if run_command(repo_cmd, allow_failure=True, timeout=30):  # Shorter timeout
-            repo_added = True
-            log_step(f"MariaDB repository added (mirror {i})", "SUCCESS")
-            break
-        else:
-            log_step(f"Mirror {i} failed, trying next...", "WARNING")
-    
-    if not repo_added:
-        log_step("Using system MariaDB instead of 10.5", "WARNING")
+        log_step("All MariaDB key methods failed, using system MariaDB", "WARNING")
+    else:
+        # Manually write repository file instead of using add-apt-repository (avoids auto-update)
+        repo_mirrors = [
+            f"http://mirror.lstn.net/mariadb/repo/{MARIADB_VERSION}/ubuntu",
+            f"http://ftp.osuosl.org/pub/mariadb/repo/{MARIADB_VERSION}/ubuntu", 
+            f"http://mirrors.neusoft.edu.cn/mariadb/repo/{MARIADB_VERSION}/ubuntu",
+            f"http://mirror.mariadb.org/repo/{MARIADB_VERSION}/ubuntu"
+        ]
+        
+        repo_added = False
+        for i, mirror in enumerate(repo_mirrors, 1):
+            log_step(f"Trying MariaDB mirror {i}/{len(repo_mirrors)} (manual method)", "INFO")
+            
+            # Write repository file manually to avoid apt-update timeout
+            repo_content = f"deb [arch=amd64,arm64,ppc64el] {mirror} {ubuntu_info['mariadb_repo']} main\n"
+            try:
+                with open("/etc/apt/sources.list.d/mariadb.list", "w") as f:
+                    f.write(repo_content)
+                
+                # Test repository accessibility with quick wget
+                test_url = f"{mirror}/dists/{ubuntu_info['mariadb_repo']}/Release"
+                if run_command(f"wget -q --spider --timeout=10 '{test_url}'", allow_failure=True):
+                    repo_added = True
+                    log_step(f"MariaDB repository added successfully (mirror {i})", "SUCCESS")
+                    break
+                else:
+                    log_step(f"Mirror {i} not accessible, trying next...", "WARNING")
+                    
+            except Exception as e:
+                log_step(f"Failed to write repository file for mirror {i}: {e}", "WARNING")
+        
+        if not repo_added:
+            log_step("Using system MariaDB instead of 10.5", "WARNING")
+            # Remove the mariadb.list file if all failed
+            try:
+                os.remove("/etc/apt/sources.list.d/mariadb.list")
+            except:
+                pass
     
     # Final package update
     run_command("apt-get update", "Updating package lists after repository setup")
