@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # =============================================================================
 # Xtream UI Auto Repair Script
 # Rezolva problemele comune de dupa instalare
@@ -26,11 +25,11 @@ fi
 
 # Verifica daca Xtream UI este instalat
 if [ ! -d "$XTREAM_PATH" ]; then
-    log "EROARE: Xtream UI nu este instalat Ón $XTREAM_PATH"
+    log "EROARE: Xtream UI nu este instalat √Æn $XTREAM_PATH"
     exit 1
 fi
 
-log "Xtream UI gasit Ón $XTREAM_PATH"
+log "Xtream UI gasit √Æn $XTREAM_PATH"
 
 # =============================================================================
 # 1. OPRE?TE TOATE SERVICIILE
@@ -67,7 +66,7 @@ log "Servicii oprite ?i porturi eliberate"
 # =============================================================================
 # 2. REPARA ionCube LOADER
 # =============================================================================
-log "Œncep repararea ionCube Loader..."
+log "√éncep repararea ionCube Loader..."
 
 # Detecteaza versiunea PHP
 PHP_VERSION=$($XTREAM_PATH/php/bin/php -v 2>/dev/null | head -n1 | cut -d ' ' -f 2 | cut -d '.' -f 1,2)
@@ -106,7 +105,7 @@ if [ -f "ioncube/$IONCUBE_FILE" ]; then
     log "Actualizez php.ini..."
     sed -i "s/zend_extension=ioncube_loader_lin_[0-9]\+\.[0-9]\+\.so/zend_extension=ioncube_loader_lin_${PHP_VERSION}.so/g" "$XTREAM_PATH/php/lib/php.ini"
     
-    # Verifica daca exista linia Ón php.ini, daca nu o adauga
+    # Verifica daca exista linia √Æn php.ini, daca nu o adauga
     if ! grep -q "zend_extension=ioncube_loader_lin_${PHP_VERSION}.so" "$XTREAM_PATH/php/lib/php.ini"; then
         echo "zend_extension=ioncube_loader_lin_${PHP_VERSION}.so" >> "$XTREAM_PATH/php/lib/php.ini"
     fi
@@ -128,7 +127,7 @@ PORTS=(25500 25461 25463 31210)
 for PORT in "${PORTS[@]}"; do
     PID=$(lsof -t -i:$PORT 2>/dev/null)
     if [ ! -z "$PID" ]; then
-        log "Port $PORT este folosit de procesul $PID - Ól opresc"
+        log "Port $PORT este folosit de procesul $PID - √Æl opresc"
         kill -9 $PID 2>/dev/null
         sleep 1
     fi
@@ -173,15 +172,15 @@ done
 # =============================================================================
 # 6. TESTEAZA ionCube
 # =============================================================================
-log "Testez Óncarcarea ionCube..."
+log "Testez √Æncarcarea ionCube..."
 
 TEST_OUTPUT=$($XTREAM_PATH/php/bin/php -v 2>&1)
 if echo "$TEST_OUTPUT" | grep -q "Failed loading.*ioncube"; then
-    log "EROARE: ionCube Ónca nu se Óncarca corect"
+    log "EROARE: ionCube √Ænca nu se √Æncarca corect"
     echo "$TEST_OUTPUT"
     exit 1
 else
-    log "ionCube se Óncarca corect"
+    log "ionCube se √Æncarca corect"
 fi
 
 # =============================================================================
@@ -299,7 +298,7 @@ echo "=== REPARA?II COMPLETE ==="
 echo "Admin Panel: http://$(hostname -I | awk '{print $1}'):25500"
 echo "API Endpoint: http://$(hostname -I | awk '{print $1}'):25461"
 echo ""
-echo "Daca Ónt‚mpini probleme, verifica logurile Ón:"
+echo "Daca √Ænt√¢mpini probleme, verifica logurile √Æn:"
 echo "  - $XTREAM_PATH/logs/"
 echo "  - $XTREAM_PATH/nginx/logs/"
 echo "  - /tmp/xtream_start.log"
