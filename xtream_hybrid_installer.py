@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 """
 Xtream UI R22F Hybrid Installer
-Combines best features from all 3 installers
+Dragon Shield Edition
 Ubuntu 22.04/24.04 + nginx 1.26.2 + PHP 8.3 + MariaDB 10.5
 
-Author: Stefan + Claude AI Collaboration
+Author: Stefan2512
 Version: 4.0 - Ultimate Hybrid
-Date: 2025
+Date: July 2025
 """
 
 import subprocess, os, random, string, sys, shutil, socket, zipfile, urllib.request, urllib.error, urllib.parse, json, base64, time, re, signal
@@ -429,25 +429,100 @@ def install_packages():
 # ============================================================================
 
 def generate_mariadb_config(sys_info):
-    """Generate optimized MariaDB configuration"""
+    """Generate optimized MariaDB configuration with intelligent scaling for all server sizes"""
     memory_gb = sys_info['memory_total_gb']
     
-    # Conservative memory settings
+    # Intelligent memory allocation based on server size
     if memory_gb <= 1:
+        # Very small servers
         innodb_buffer = '128M'
         max_connections = 100
+        tmp_table_size = '64M'
+        max_heap_table_size = '64M'
+        key_buffer_size = '16M'
+        
     elif memory_gb <= 2:
+        # Small servers  
         innodb_buffer = '256M'
         max_connections = 200
+        tmp_table_size = '128M'
+        max_heap_table_size = '128M'
+        key_buffer_size = '32M'
+        
     elif memory_gb <= 4:
+        # Medium servers
         innodb_buffer = '512M'
         max_connections = 300
-    else:
-        innodb_buffer = '1G'
+        tmp_table_size = '256M'
+        max_heap_table_size = '256M'
+        key_buffer_size = '64M'
+        
+    elif memory_gb <= 8:
+        # Large servers
+        innodb_buffer = '2G'
         max_connections = 500
+        tmp_table_size = '512M'
+        max_heap_table_size = '512M'
+        key_buffer_size = '128M'
+        
+    elif memory_gb <= 16:
+        # Very large servers
+        innodb_buffer = '6G'  # ~40% of RAM
+        max_connections = 1000
+        tmp_table_size = '1G'
+        max_heap_table_size = '1G'
+        key_buffer_size = '256M'
+        
+    elif memory_gb <= 32:
+        # Enterprise servers
+        innodb_buffer = '12G'  # ~40% of RAM
+        max_connections = 2000
+        tmp_table_size = '2G'
+        max_heap_table_size = '2G'
+        key_buffer_size = '512M'
+        
+    elif memory_gb <= 64:
+        # High-end enterprise servers
+        innodb_buffer = '24G'  # ~40% of RAM (leaving space for nginx, PHP, OS)
+        max_connections = 3000
+        tmp_table_size = '4G'
+        max_heap_table_size = '4G'
+        key_buffer_size = '1G'
+        
+    else:
+        # Monster servers (64GB+)
+        # Use 40% of RAM for InnoDB buffer pool
+        buffer_size_gb = int(memory_gb * 0.4)
+        innodb_buffer = f'{buffer_size_gb}G'
+        max_connections = 5000
+        tmp_table_size = '8G'
+        max_heap_table_size = '8G'
+        key_buffer_size = '2G'
     
+    # Calculate additional optimizations for high-memory servers
+    if memory_gb >= 16:
+        # Enable multiple buffer pool instances for better concurrency
+        buffer_pool_instances = min(16, max(1, int(memory_gb // 4)))
+        # Increase log file size for better performance
+        log_file_size = '1G' if memory_gb >= 32 else '512M'
+        # Increase read/write threads for high-end servers
+        read_threads = min(64, max(4, int(memory_gb // 2)))
+        write_threads = min(64, max(4, int(memory_gb // 2)))
+        # Better concurrency settings
+        back_log = min(900, max_connections // 2)
+        table_cache = min(4096, max(1024, int(memory_gb * 64)))
+    else:
+        buffer_pool_instances = 1
+        log_file_size = '128M'
+        read_threads = 4
+        write_threads = 4
+        back_log = max_connections // 2
+        table_cache = 1024
+
     config = f"""# Xtream UI MariaDB Configuration
-# Generated for {memory_gb}GB RAM
+# Generated for {memory_gb}GB RAM server
+# InnoDB Buffer Pool: {innodb_buffer} (~{int((float(innodb_buffer.replace('G', '').replace('M', '')) if 'G' in innodb_buffer else float(innodb_buffer.replace('M', ''))/1024) / memory_gb * 100) if memory_gb > 0 else 0}% of total RAM)
+# Optimized for high-performance IPTV streaming workloads
 
 [client]
 port = 3306
@@ -464,28 +539,56 @@ tmpdir = /tmp
 skip-external-locking
 skip-name-resolve = 1
 
+# Network settings
 bind-address = 127.0.0.1
 max_connections = {max_connections}
 max_allowed_packet = 64M
+back_log = {back_log}
 
-# Memory settings
-key_buffer_size = 128M
-table_open_cache = 1024
+# Connection timeouts
+connect_timeout = 30
+wait_timeout = 600
+interactive_timeout = 600
+
+# Memory settings optimized for {memory_gb}GB RAM
+key_buffer_size = {key_buffer_size}
+table_open_cache = {table_cache}
+table_definition_cache = {table_cache}
 sort_buffer_size = 2M
 read_buffer_size = 1M
+read_rnd_buffer_size = 2M
 
-# InnoDB settings
+# Temporary tables
+tmp_table_size = {tmp_table_size}
+max_heap_table_size = {max_heap_table_size}
+
+# InnoDB settings - optimized for high-performance IPTV streaming
 innodb_buffer_pool_size = {innodb_buffer}
+innodb_buffer_pool_instances = {buffer_pool_instances}
+innodb_read_io_threads = {read_threads}
+innodb_write_io_threads = {write_threads}
+innodb_thread_concurrency = 0
 innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
 innodb_file_per_table = 1
-innodb_log_file_size = 128M
+innodb_log_file_size = {log_file_size}
+innodb_log_buffer_size = 32M
+innodb_lock_wait_timeout = 50
 
-# Query cache disabled
+# Query cache disabled for better performance with many connections
 query_cache_type = 0
 query_cache_size = 0
 
-# SQL mode
+# Binary logging
+expire_logs_days = 3
+max_binlog_size = 100M
+
+# SQL mode for Xtream compatibility
 sql-mode = "NO_ENGINE_SUBSTITUTION"
+
+# MyISAM settings
+myisam_sort_buffer_size = 8M
+myisam_recover_options = BACKUP
 
 [mysqldump]
 quick
@@ -497,6 +600,15 @@ max_allowed_packet = 16M
 [isamchk]
 key_buffer_size = 16M
 """
+    
+    # Log the configuration for transparency
+    log_step(f"MariaDB optimized for {memory_gb}GB RAM:", "SUCCESS")
+    log_step(f"  - InnoDB Buffer Pool: {innodb_buffer}", "INFO")
+    log_step(f"  - Max Connections: {max_connections}", "INFO")
+    if memory_gb >= 16:
+        log_step(f"  - Buffer Pool Instances: {buffer_pool_instances}", "INFO")
+        log_step(f"  - I/O Threads: {read_threads}R/{write_threads}W", "INFO")
+    
     return config
 
 def install_mariadb(sys_info):
