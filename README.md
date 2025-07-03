@@ -4,6 +4,7 @@
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04-orange.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-green.svg)
 ![License](https://img.shields.io/badge/License-Educational-red.svg)
+[![GitHub](https://img.shields.io/badge/GitHub-Stefan2512-black.svg)](https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025)
 
 **Production-ready installer for Xtream UI R22F with static binaries compilation**
 
@@ -32,11 +33,13 @@
 ## 📋 System Requirements
 
 ### Minimum Requirements
-- **OS**: Ubuntu 22.04 LTS or 24.04 LTS
+- **OS**: Ubuntu 20.04 LTS, 22.04 LTS or 24.04 LTS
 - **RAM**: 1GB minimum (2GB+ recommended)
 - **CPU**: 2 cores minimum
 - **Storage**: 10GB free space
 - **Root access** required
+
+> **Note**: While originally designed for Ubuntu 20.04 LTS, this installer has been enhanced to support Ubuntu 22.04 and 24.04 LTS with automatic compatibility adjustments.
 
 ### Recommended Specifications
 | Server Type | RAM | CPU Cores | Use Case |
@@ -50,28 +53,32 @@
 
 ### Quick Start
 ```bash
-# Download the installer
-wget https://raw.githubusercontent.com/your-repo/xtream-installer/main/installer.py
+# Download the installer directly
+wget https://raw.githubusercontent.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025/master/xtream_hybrid_installer.py
+
+# Alternative: Clone the full repository
+git clone https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025.git
+cd Xtream-UI-R22F-ubuntu20.04lts-2025
 
 # Make it executable
-chmod +x installer.py
+chmod +x xtream_hybrid_installer.py
 
 # Run as root
-sudo python3 installer.py
+sudo python3 xtream_hybrid_installer.py
 ```
 
 ### Installation Types
 
 #### 1. Main Server Installation
 ```bash
-sudo python3 installer.py
+sudo python3 xtream_hybrid_installer.py
 # Select option [1] MAIN SERVER
 ```
 **Installs**: Complete Xtream UI stack with database, web panels, and streaming services.
 
 #### 2. Load Balancer Installation  
 ```bash
-sudo python3 installer.py
+sudo python3 xtream_hybrid_installer.py
 # Select option [2] LOAD BALANCER
 # Provide: Main server IP, MySQL password, Server ID
 ```
@@ -79,7 +86,7 @@ sudo python3 installer.py
 
 #### 3. Update Existing Installation
 ```bash
-sudo python3 installer.py
+sudo python3 xtream_hybrid_installer.py
 # Select option [3] UPDATE
 ```
 **Updates**: Existing Xtream UI installation to latest R22F version.
@@ -237,8 +244,8 @@ This installer is a collaboration between Stefan and Claude AI. Contributions ar
 
 ### Development Setup
 ```bash
-git clone https://github.com/your-repo/xtream-installer.git
-cd xtream-installer
+git clone https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025.git
+cd Xtream-UI-R22F-ubuntu20.04lts-2025
 ```
 
 ### Reporting Issues
@@ -248,6 +255,8 @@ Please include:
 - Installation type attempted
 - Complete error messages
 - Relevant log files
+
+Report issues at: [GitHub Issues](https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025/issues)
 
 ## 📝 Version History
 
@@ -279,10 +288,11 @@ The authors assume no responsibility for misuse of this software.
 
 ## 📧 Support
 
+- **Repository**: [Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025](https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025)
 - **Author**: Stefan + Claude AI Collaboration
 - **Contact**: Stefan@outlook.ie
-- **Documentation**: This README and inline code comments
-- **Issues**: GitHub Issues section
+- **File**: `xtream_hybrid_installer.py`
+- **Issues**: [GitHub Issues](https://github.com/Stefan2512/Xtream-UI-R22F-ubuntu20.04lts-2025/issues)
 
 ---
 
