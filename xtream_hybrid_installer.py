@@ -36,6 +36,7 @@ DOWNLOAD_URLS = {
 
 # Ubuntu versions support matrix
 UBUNTU_SUPPORT = {
+    "20.10": {"codename": "groovy", "eol": True, "mariadb_repo": "focal"},
     "22.04": {"codename": "jammy", "eol": False, "mariadb_repo": "jammy"},
     "24.04": {"codename": "noble", "eol": False, "mariadb_repo": "jammy"}  # Use jammy for compatibility
 }
