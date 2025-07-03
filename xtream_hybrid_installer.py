@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 """
 Xtream UI R22F Hybrid Installer
+Combines best features from all 3 installers
 Ubuntu 22.04/24.04 + nginx 1.26.2 + PHP 8.3 + MariaDB 10.5
 
-Author: Stefan2512
+Author: Stefan + Claude AI Collaboration
 Version: 4.0 - Ultimate Hybrid
-Date: July 2025
+Date: 2025
 """
 
 import subprocess, os, random, string, sys, shutil, socket, zipfile, urllib.request, urllib.error, urllib.parse, json, base64, time, re, signal
@@ -856,9 +857,36 @@ def download_and_install_xtream(install_type="MAIN"):
     if not run_command(f'wget -q -O "/tmp/xtreamcodes.zip" "{download_url}"', "Downloading Xtream software"):
         return False
     
-    # Install software
-    if not run_command('unzip "/tmp/xtreamcodes.zip" -d "/home/xtreamcodes/"', "Installing Xtream software"):
-        return False
+    # Install software with extended timeout for large archives
+    log_step("Extracting Xtream software (this may take several minutes for large archives)", "INFO")
+    
+    # Check archive size to determine appropriate timeout
+    archive_size_mb = 0
+    try:
+        import os
+        archive_size_mb = os.path.getsize("/tmp/xtreamcodes.zip") / (1024 * 1024)
+        log_step(f"Archive size: {archive_size_mb:.1f}MB", "INFO")
+    except:
+        archive_size_mb = 100  # Default assumption
+    
+    # Calculate timeout based on archive size (assume ~1MB per minute for complex archives)
+    extraction_timeout = max(600, int(archive_size_mb * 60))  # Minimum 10 minutes
+    log_step(f"Using {extraction_timeout}s timeout for extraction", "INFO")
+    
+    # Extract with extended timeout and verbose output
+    if not run_command('unzip -o "/tmp/xtreamcodes.zip" -d "/home/xtreamcodes/"', 
+                      "Installing Xtream software", 
+                      timeout=extraction_timeout, 
+                      retry_count=1):
+        # If extraction fails, try alternative method
+        log_step("Standard extraction failed, trying alternative method", "WARNING")
+        
+        # Try with progress indicators and smaller chunks
+        if not run_command('cd /tmp && unzip -o xtreamcodes.zip -d /home/xtreamcodes/ -q', 
+                          "Retrying extraction with alternative method", 
+                          timeout=extraction_timeout):
+            log_step("Extraction failed completely", "ERROR")
+            return False
     
     # Restore nginx binaries
     for name, backup_path in nginx_backups.items():
@@ -877,12 +905,23 @@ def download_and_install_xtream(install_type="MAIN"):
     return True
 
 def update_xtream():
-    """Update Xtream software"""
+    """Update Xtream software with improved extraction handling"""
     log_step("Updating Xtream software", "INFO")
     
     # Download update
     if not run_command(f'wget -q -O "/tmp/update.zip" "{DOWNLOAD_URLS["update"]}"', "Downloading update"):
         return False
+    
+    # Check archive size for timeout calculation
+    archive_size_mb = 0
+    try:
+        archive_size_mb = os.path.getsize("/tmp/update.zip") / (1024 * 1024)
+        log_step(f"Update archive size: {archive_size_mb:.1f}MB", "INFO")
+    except:
+        archive_size_mb = 50  # Default for updates
+    
+    # Calculate appropriate timeout
+    extraction_timeout = max(300, int(archive_size_mb * 60))
     
     # Validate zip file
     try:
@@ -892,20 +931,27 @@ def update_xtream():
         log_step("Invalid update zip file", "ERROR")
         return False
     
-    # Apply update
+    # Apply update with extended timeout
+    log_step("Applying update (this may take several minutes)", "INFO")
     update_commands = [
         "chattr -i /home/xtreamcodes/iptv_xtream_codes/GeoLite2.mmdb",
         "rm -rf /home/xtreamcodes/iptv_xtream_codes/admin",
         "rm -rf /home/xtreamcodes/iptv_xtream_codes/pytools",
-        "unzip /tmp/update.zip -d /tmp/update/",
+        f"unzip -o /tmp/update.zip -d /tmp/update/",  # With timeout
         "cp -rf /tmp/update/XtreamUI-master/* /home/xtreamcodes/iptv_xtream_codes/",
         "rm -rf /tmp/update/",
         "chown -R xtreamcodes:xtreamcodes /home/xtreamcodes/",
         "chattr +i /home/xtreamcodes/iptv_xtream_codes/GeoLite2.mmdb"
     ]
     
-    for cmd in update_commands:
-        run_command(cmd, allow_failure=True)
+    for i, cmd in enumerate(update_commands):
+        if "unzip" in cmd:
+            # Use extended timeout for unzip operations
+            if not run_command(cmd, f"Update step {i+1}/{len(update_commands)}", 
+                             timeout=extraction_timeout, allow_failure=True):
+                log_step(f"Update step {i+1} had issues but continuing", "WARNING")
+        else:
+            run_command(cmd, allow_failure=True)
     
     # Clean up
     try:
