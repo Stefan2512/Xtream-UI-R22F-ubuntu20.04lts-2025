@@ -59,33 +59,57 @@ def printc(rText, rColour=col.BRIGHT_GREEN, rPadding=0, rLimit=46):
 
 def install_ioncube():
     printc("Installing ION Cube 7.4")
+    
+    # First, remove any existing ION Cube configurations that might conflict
+    printc("Cleaning existing ION Cube configurations")
+    os.system("find /etc/php* -name '*ioncube*' -delete > /dev/null 2>&1")
+    os.system("find /home/xtreamcodes/iptv_xtream_codes/php/etc/ -name '*ioncube*' -delete > /dev/null 2>&1")
+    
     # Download and install ION Cube for PHP 7.4
     os.system("cd /tmp && wget -q http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz")
     os.system("cd /tmp && tar xzf ioncube_loaders_lin_x86-64.tar.gz")
     
-    # Create ION Cube directory if it doesn't exist
+    # Create directories for both system PHP and Xtream Codes PHP
     os.system("mkdir -p /usr/lib/php/20190902")
+    os.system("mkdir -p /home/xtreamcodes/iptv_xtream_codes/php/lib/php/extensions/no-debug-non-zts-20190902")
     
-    # Copy the ION Cube loader for PHP 7.4
+    # Copy the ION Cube loader for PHP 7.4 to both locations
     os.system("cp /tmp/ioncube/ioncube_loader_lin_7.4.so /usr/lib/php/20190902/")
+    os.system("cp /tmp/ioncube/ioncube_loader_lin_7.4.so /home/xtreamcodes/iptv_xtream_codes/php/lib/php/extensions/no-debug-non-zts-20190902/")
     
-    # Create ION Cube configuration file
-    rIonCubeConf = """extension=ioncube_loader_lin_7.4.so
-zend_extension=/usr/lib/php/20190902/ioncube_loader_lin_7.4.so"""
+    # Create ION Cube configuration files for system PHP
+    if os.path.exists("/etc/php/7.4/"):
+        os.system("mkdir -p /etc/php/7.4/fpm/conf.d")
+        os.system("mkdir -p /etc/php/7.4/cli/conf.d")
+        
+        rIonCubeConf = """zend_extension=/usr/lib/php/20190902/ioncube_loader_lin_7.4.so"""
+        
+        rFile = open("/etc/php/7.4/fpm/conf.d/00-ioncube.ini", "w")
+        rFile.write(rIonCubeConf)
+        rFile.close()
+        
+        rFile = open("/etc/php/7.4/cli/conf.d/00-ioncube.ini", "w")
+        rFile.write(rIonCubeConf)
+        rFile.close()
     
-    rFile = open("/etc/php/7.4/fpm/conf.d/00-ioncube.ini", "w")
-    rFile.write(rIonCubeConf)
+    # Create ION Cube configuration for Xtream Codes PHP
+    os.system("mkdir -p /home/xtreamcodes/iptv_xtream_codes/php/etc/conf.d")
+    
+    rXtreamIonCubeConf = """zend_extension=/home/xtreamcodes/iptv_xtream_codes/php/lib/php/extensions/no-debug-non-zts-20190902/ioncube_loader_lin_7.4.so"""
+    
+    rFile = open("/home/xtreamcodes/iptv_xtream_codes/php/etc/conf.d/00-ioncube.ini", "w")
+    rFile.write(rXtreamIonCubeConf)
     rFile.close()
     
-    rFile = open("/etc/php/7.4/cli/conf.d/00-ioncube.ini", "w")
-    rFile.write(rIonCubeConf)
-    rFile.close()
+    # Set proper permissions
+    os.system("chown -R xtreamcodes:xtreamcodes /home/xtreamcodes/iptv_xtream_codes/php/ > /dev/null")
+    os.system("chmod +x /home/xtreamcodes/iptv_xtream_codes/php/lib/php/extensions/no-debug-non-zts-20190902/ioncube_loader_lin_7.4.so")
     
     # Cleanup
     os.system("rm -rf /tmp/ioncube*")
     
-    # Restart PHP-FPM
-    os.system("systemctl restart php7.4-fpm > /dev/null")
+    # Try to restart system PHP-FPM if it exists
+    os.system("systemctl restart php7.4-fpm > /dev/null 2>&1")
 
 def prepare(rType="MAIN"):
     global rPackages
